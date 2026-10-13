@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一個普通的時鐘</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: monospace, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        #clock {
+            display: none;
+            font-size: 15vw;
+            font-weight: bold;
+            letter-spacing: 2px;
+            user-select: none;
+        }
+
+        #enableBtn {
+            font-size: 15vw;
+            font-weight: bold;
+            letter-spacing: 2px;
+            user-select: none;
+        }
+
+        #stopBtn {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #cc0000;
+            color: #ffffff;
+            font-size: 8vw;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #stopBtn:active {
+            background-color: #990000;
+        }
+    </style>
+</head>
+<body onclick="enableAlarmSystem()">
+
+    <div id="enableBtn">GO</div>
+
+    <div id="clock">00:00:00</div>
+
+    <button id="stopBtn" onclick="stopAlarm(event)">⏰</button>
+
+    <script>
+        const targetAlarms = ["18:05", "18:30", "18:35", "19:45", "19:50", "21:50"];
+
+        let isActivated = false;
+        let triggeredToday = {};
+        let currentPlayingAudio = null;
+
+        const alarmAudio1 = new Audio('ring.mp3');
+
+        const alarmAudio2 = new Audio('dog.mp3');
+
+        const handleAudioEnded = () => {
+            stopAlarm();
+        };
+
+        alarmAudio1.addEventListener('ended', handleAudioEnded);
+        alarmAudio2.addEventListener('ended', handleAudioEnded);
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+
+            const timeStr = `${h}:${m}:${s}`;
+            const hmStr = `${h}:${m}`;
+
+            document.getElementById('clock').innerText = timeStr;
+
+            if (isActivated && s === "00" && targetAlarms.includes(hmStr)) {
+                const todayKey = `${hmStr}-${now.toDateString()}`;
+                if (!triggeredToday[todayKey]) {
+                    triggeredToday[todayKey] = true;
+                    triggerAlarm(hmStr);
+                }
+            }
+        }
+
+        function enableAlarmSystem() {
+            if (isActivated) return;
+            isActivated = true;
+
+            document.getElementById('enableBtn').style.display = 'none';
+            document.getElementById('clock').style.display = 'block';
+
+            const unlock = (audio) => {
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }).catch(e => console.log(e));
+            };
+
+            unlock(alarmAudio1);
+            unlock(alarmAudio2);
+        }
+
+        function triggerAlarm(timeStr) {
+            document.getElementById('stopBtn').style.display = 'flex';
+            
+            if (timeStr === "21:00") {
+                currentPlayingAudio = alarmAudio2;
+            } else {
+                currentPlayingAudio = alarmAudio1;
+            }
+
+            if (currentPlayingAudio) {
+                currentPlayingAudio.currentTime = 0;
+                currentPlayingAudio.play().catch(e => {
+                    console.error(e);
+                });
+            }
+        }
+
+        function stopAlarm(e) {
+            if (e) e.stopPropagation();
+
+            if (currentPlayingAudio) {
+                currentPlayingAudio.pause();
+                currentPlayingAudio.currentTime = 0;
+                currentPlayingAudio = null;
+            }
+
+            document.getElementById('stopBtn').style.display = 'none';
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
